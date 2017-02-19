@@ -76,4 +76,5 @@ before_script:
 script:
     - make
     - make test
-    - cat Testing/Temporary/LastTest.log
+    - pwd
+    - cat ../Testing/Temporary/LastTest.log
