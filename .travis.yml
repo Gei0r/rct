@@ -79,3 +79,5 @@ script:
     - pwd
     - ls -lR
     - cat Testing/Temporary/LastTest.log
+    - cd tests
+    - ./rct_tests
