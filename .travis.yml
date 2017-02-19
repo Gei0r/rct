@@ -77,4 +77,5 @@ script:
     - make
     - make test
     - pwd
-    - cat ../Testing/Temporary/LastTest.log
+    - ls -lR
+    - cat Testing/Temporary/LastTest.log
