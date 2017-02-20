@@ -159,6 +159,7 @@ void ProcessTestSuite::startAsync()
 
 void ProcessTestSuite::readFromStdout()
 {
+    std::cout << "readFromStdout()" << std::endl;
     Process p;
     std::vector<String> dataReadFromStdout;
 
@@ -171,30 +172,43 @@ void ProcessTestSuite::readFromStdout()
     CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
     realSleep(50);
+    std::cout << "ChildProcess started. About to start testing..." << std::endl;
     CPPUNIT_ASSERT(!p.isFinished());
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
     udp_send("stdout This is a test");
+    std::cout << "checkpoint 1" << std::endl;
     realSleep(50);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be "This is a test"
+    std::cout << "checkpoint 2" << std::endl;
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
+    std::cout << "checkpoint 3" << std::endl;
     realSleep(50);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
+    std::cout << "checkpoint 4" << std::endl;
     udp_send("exit 0");
     realSleep(50);
+    std::cout << "checkpoint 5" << std::endl;
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
-
+    std::cout << "checkpoint 6" << std::endl;
     CPPUNIT_ASSERT(p.isFinished());
-
+    std::cout << "checkpoint 7" << std::endl;
     // need to do the test *after* ChildProcess terminates, because
     // if the check fails, we exit this scope, destroying the Process object
     // before ChildProcess exits.
 
     CPPUNIT_ASSERT(dataReadFromStdout[0].isEmpty());
+    std::cout << "checkpoint 8" << std::endl;
     CPPUNIT_ASSERT(dataReadFromStdout[1] == "This is a test");
+    std::cout << "checkpoint 9" << std::endl;
     CPPUNIT_ASSERT(dataReadFromStdout[2].isEmpty());
+    std::cout << "checkpoint 10" << std::endl;
     CPPUNIT_ASSERT(dataReadFromStdout[3].isEmpty());
+    std::cout << "checkpoint 11" << std::endl;
     CPPUNIT_ASSERT(dataReadFromStdout[4].isEmpty());
+    std::cout << "checkpoint 12" << std::endl;
     t.join();
+    std::cout << "checkpoint 13" << std::endl;
+    std::cout << "Scope exit..." << std::endl;
 }
 
 void ProcessTestSuite::readFromStderr()
