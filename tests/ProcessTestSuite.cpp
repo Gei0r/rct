@@ -8,6 +8,7 @@
 void ProcessTestSuite::setUp()
 {
     int res;
+    std::cout << "ProcessTestSuite::setUp()" << std::endl;
 
 #ifdef _WIN32
     // On Windows, we need to setup Windows socket before using it.

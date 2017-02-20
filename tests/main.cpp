@@ -94,6 +94,7 @@ class CustomOutputter : public CppUnit::CompilerOutputter
 
 int main()
 {
+    std::cout << "main()" << std::endl;
     CppUnit::TestRunner runner;
 
     CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
