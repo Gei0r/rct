@@ -24,6 +24,7 @@
 #include "SocketClient.h"
 #include "StopWatch.h"
 #include "Thread.h"
+#include <iostream>
 
 static std::once_flag sProcessHandler;
 
@@ -266,25 +267,42 @@ Process::Process()
 
 Process::~Process()
 {
+    std::cout << "~Process()" << std::endl;
+
     {
         std::lock_guard<std::mutex> lock(mMutex);
+        std::cout << "before assert" << std::endl;
         assert(mReturn != ReturnUnset || mPid == -1);
+        std::cout << "after assert" << std::endl;
     }
 
+    std::cout << "line " << __LINE__ << std::endl;
     if (mStdIn[0] != -1 && EventLoop::eventLoop()) {
         // try to finish off any pending writes
         handleInput(mStdIn[1]);
     }
 
+    std::cout << "line " << __LINE__ << std::endl;
     closeStdIn(CloseForce);
+    std::cout << "line " << __LINE__ << std::endl;
     closeStdOut();
+    std::cout << "line " << __LINE__ << std::endl;
     closeStdErr();
 
     int w;
+    std::cout << "line " << __LINE__ << std::endl;
     if (mSync[0] != -1)
+    {
+        std::cout << "line " << __LINE__ << std::endl;
         eintrwrap(w, ::close(mSync[0]));
+    }
+
     if (mSync[1] != -1)
+    {
+        std::cout << "line " << __LINE__ << std::endl;
         eintrwrap(w, ::close(mSync[1]));
+    }
+    std::cout << "line " << __LINE__ << " Scope exit" << std::endl;
 }
 
 void Process::clear()

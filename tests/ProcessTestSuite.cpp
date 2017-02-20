@@ -96,6 +96,7 @@ void ProcessTestSuite::udp_send(const std::string &data)
 
 void ProcessTestSuite::tearDown()
 {
+    std::cout << "tearDown()" << std::endl;
 #ifdef _WIN32
     closesocket(listenSock);
     closesocket(sendSock);
