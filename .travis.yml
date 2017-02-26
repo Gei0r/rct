@@ -74,10 +74,6 @@ before_script:
 
 
 script:
-    - make
-    - make test
-    - pwd
-    - ls -lR
+    - make -j4
+    - make -j4 test
     - cat Testing/Temporary/LastTest.log
-    - cd tests
-    - ./rct_tests
