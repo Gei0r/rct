@@ -14,7 +14,17 @@
 
 #include <rct/List.h>
 
-#define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
+#ifdef __MINGW32__
+    // Mingw does not supply its own runtime environment, but uses the one
+    // supplied by windows (msvcrt).
+    // Msvcrt used to not support the "long long" format specifiers, so mingw
+    // issues a warning when such a specifier is used.
+    // Newer versions of the msvcrt *do* support the specifiers however, so the
+    // warning is useless.
+#  define RCT_PRINTF_WARNING(fmt, firstarg)
+#else
+#  define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
+#endif
 class String
 {
 public:

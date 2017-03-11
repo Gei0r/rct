@@ -28,7 +28,9 @@ set(RCT_TEST_SRCS main.cpp
                   PathTestSuite.cpp
                   ProcessTestSuite.cpp
                   MemoryMappedFileTestSuite.cpp
-                  SHA256TestSuite.cpp)
+                  SHA256TestSuite.cpp
+                  StringTestSuite.cpp
+                  )
 
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
   list(APPEND RCT_TEST_SRCS DateTestSuite.cpp)
