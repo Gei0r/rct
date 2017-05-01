@@ -11,6 +11,20 @@
 
 struct sockaddr;
 
+/**
+ * Represents a TCP or Unix Domain Socket Server.
+ *
+ * You can start the server by calling one of the listen() methods. When a
+ * client connects, the newConnection signal is emitted and the server
+ * continues listening for new connections.
+ *
+ * Upon receiving a newConnectionSignal, you can retreive the newly connected
+ * Client through the nextConnection() method.
+ *
+ * This class needs a global running EventLoop.
+ *
+ * On Windows, the Unix Domain Socket server is emulated through TCP.
+ */
 class SocketServer
 {
 public:
@@ -18,6 +32,12 @@ public:
     typedef std::weak_ptr<SocketServer> WeakPtr;
 
     SocketServer();
+
+    /**
+     * Destructor.
+     *
+     * Closes the socket server.
+     */
     ~SocketServer();
 
     enum Mode { IPv4, IPv6 };
@@ -30,6 +50,12 @@ public:
 #endif
     bool isListening() const { return fd != -1; }
 
+    /**
+     * Returns a newly accepted client connection and removes it from the
+     * internal list.
+     *
+     * @return nullptr if there are no more newly accepted client connections.
+     */
     SocketClient::SharedPtr nextConnection();
 
     Signal<std::function<void(SocketServer*)> >& newConnection() { return serverNewConnection; }

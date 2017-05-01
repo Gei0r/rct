@@ -33,7 +33,7 @@ set(RCT_TEST_SRCS main.cpp
                   )
 
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
-  list(APPEND RCT_TEST_SRCS DateTestSuite.cpp)
+  list(APPEND RCT_TEST_SRCS DateTestSuite.cpp SocketTestSuite.cpp)
 endif()
 
 set(BINARY_NAME "rct_tests")
