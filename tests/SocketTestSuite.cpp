@@ -1,15 +1,20 @@
 #include "SocketTestSuite.h"
 
+#include "DeferredAssert.h"
+
 #include <rct/EventLoop.h>
 #include <rct/SocketServer.h>
 
 #include <iostream>
 #include <thread>
+#include <sstream>
 
 void SocketTestSuite::unixSockets()
 {
     const Path unixPathToUse("test_unixSocket");
     unixPathToUse.rm();
+
+    DeferredAsserter da;
 
     // We need an event loop to receive signals.
     EventLoop::SharedPtr loop(new EventLoop);
@@ -19,17 +24,27 @@ void SocketTestSuite::unixSockets()
 
     CPPUNIT_ASSERT(!s.isListening());
 
-    std::vector<std::string> eventLog;
-    std::mutex m;
+    // flag whether the newConnection slot was called.
+    bool gotNewConnection = false;
 
-    s.newConnection().connect([&](SocketServer *)
+    // flag whether the connected slot was called.
+    bool gotConnected = false;
+
+    // the slot lambdas will be called from the serverThread's context.
+    s.newConnection().connect([&](SocketServer *s)
                               {
-                                  std::lock_guard<std::mutex> g(m);
-                                  eventLog.push_back("accepted");
+                                  gotNewConnection = true;
+
+                                  auto client = s->nextConnection();
+
+                                  DEFERRED_COMPARE(da, client->mode(), SocketClient::Unix);
+                                  DEFERRED_COMPARE(da, client->state(), SocketClient::Connected);
                               });
     s.error().connect([&](SocketServer*, SocketServer::Error e)
                       {
-                          std::cerr << "Server error: " << e << std::endl;
+                          std::ostringstream oss;
+                          oss << "Server error: " << e;
+                          da.fail(oss.str());
                       });
 
     CPPUNIT_ASSERT(s.listen(unixPathToUse));
@@ -40,6 +55,11 @@ void SocketTestSuite::unixSockets()
     realSleep(100);
     SocketClient::SharedPtr client(new SocketClient(SocketClient::Unix));
 
+    client->connected().connect([&](SocketClient::SharedPtr)
+                                {
+                                    gotConnected = true;
+                                });
+
     CPPUNIT_ASSERT(client->state() == SocketClient::Disconnected);
     CPPUNIT_ASSERT(client->connect(unixPathToUse));
     realSleep(50);
@@ -47,8 +67,10 @@ void SocketTestSuite::unixSockets()
 
     serverThread.join();
 
-    CPPUNIT_ASSERT(eventLog.size() == 1);
-    CPPUNIT_ASSERT(eventLog[0] == "accepted");
+    CPPUNIT_ASSERT(gotNewConnection);
+    CPPUNIT_ASSERT(gotConnected);
+    CPPUNIT_ASSERT(da.result());
+
 }
 
 void SocketTestSuite::realSleep(int ms)
