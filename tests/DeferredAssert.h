@@ -16,23 +16,26 @@
 #include <string>
 #include <mutex>
 
-#define DEFERRED_ASSERT(da, expr) (da).assert((expr), #expr);
-#define DEFERRED_COMPARE(da, lhs, rhs) (da).compare(lhs, rhs, #lhs, #rhs)
+#define DEFERRED_ASSERT(da, expr) (da).assert((expr), #expr, __LINE__);
+#define DEFERRED_COMPARE(da, lhs, rhs) (da).compare(lhs, rhs, #lhs, #rhs, __LINE__)
 
 class DeferredAsserter
 {
 public:
     DeferredAsserter() : m_testSuccessful(true) {}
 
-    bool assert(bool value, const char* expr=nullptr)
+    bool assert(bool value, const char* expr=nullptr, int line=0)
     {
         if(!value)
         {
             std::lock_guard<std::mutex> g(m_mutex);
             if(expr)
             {
-                std::cerr << "TEST ERROR: " << expr
-                          << " is false" << std::endl;
+                std::cerr << "TEST ERROR ";
+                if(line) std::cerr << "(line " << line << ") ";
+                std::cerr << expr << " is false";
+
+                std::cerr << std::endl;
             }
             m_testSuccessful = false;
         }
@@ -43,16 +46,19 @@ public:
     template<class L, class R>
     bool compare(const L &lhs, const R &rhs,
                  const char* expr_lhs=nullptr,
-                 const char *expr_rhs=nullptr)
+                 const char *expr_rhs=nullptr,
+                 int line=0)
     {
         if(lhs != rhs)
         {
             std::lock_guard<std::mutex> g(m_mutex);
             if(expr_lhs && expr_rhs)
             {
-                std::cerr << "TEST ERROR: "
-                          << expr_lhs << " (" << lhs << ") != "
-                          << expr_rhs << " (" << rhs << ")" << std::endl;
+                std::cerr << "TEST ERROR ";
+                if(line) std::cerr << "(line " << line << ") ";
+                std::cerr << expr_lhs << " (" << lhs << ") != "
+                          << expr_rhs << " (" << rhs << ")";
+                std::cerr << std::endl;
             }
             else
             {

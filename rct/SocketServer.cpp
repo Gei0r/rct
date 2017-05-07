@@ -111,6 +111,7 @@ bool SocketServer::listen(const Path &p)
     close();
 
     fd = ::socket(PF_UNIX, SOCK_STREAM, 0);
+    debug() << "Socket Server unix listen fd=" << fd;
     if (fd < 0) {
         // bad
         serverError(this, InitializeError);
@@ -227,6 +228,7 @@ void SocketServer::socketCallback(int /*fd*/, int mode)
         }
 
         //EventLoop::eventLoop()->unregisterSocket( fd );
+        debug() << "SocketServer: got new connection with fd=" << e;
         accepted.push(e);
         serverNewConnection(this);
     }

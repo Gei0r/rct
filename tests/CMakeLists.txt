@@ -25,15 +25,10 @@ endif ()
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
 set(RCT_TEST_SRCS main.cpp
-                  PathTestSuite.cpp
-                  ProcessTestSuite.cpp
-                  MemoryMappedFileTestSuite.cpp
-                  SHA256TestSuite.cpp
-                  StringTestSuite.cpp
                   )
 
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
-  list(APPEND RCT_TEST_SRCS DateTestSuite.cpp SocketTestSuite.cpp)
+  list(APPEND RCT_TEST_SRCS SocketTestSuite.cpp)
 endif()
 
 set(BINARY_NAME "rct_tests")

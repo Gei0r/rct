@@ -119,6 +119,8 @@ public:
     bool logsEnabled() const { return mLogsEnabled; }
     void setLogsEnabled(bool on) { mLogsEnabled = on; }
 private:
+    friend class SocketTestSuite;
+
     bool init(unsigned int mode);
 
     int fd;
