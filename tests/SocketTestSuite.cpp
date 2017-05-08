@@ -13,39 +13,42 @@
 void SocketTestSuite::unixSockets()
 {
     const Path unixPathToUse("test_unixSocket");
+
+    // need to delete the file if it already exists
     unixPathToUse.rm();
 
     DeferredAsserter da;
-    std::mutex m;
 
     // We need an event loop to receive signals.
     EventLoop::SharedPtr loop(new EventLoop);
     loop->init(EventLoop::MainEventLoop);
 
+    // create the server
     SocketServer::SharedPtr s(new SocketServer);
-
-    CPPUNIT_ASSERT(!s->isListening());
-
 
     // the following variables count how often certain slots are called:
     int server_newConnection = 0;
     int server_recv = 0;
     int client_connected = 0;
     int client_recv = 0;
+
+    // This will hold the client connection that the server gets once a client
+    // connects.
     SocketClient::SharedPtr serverSocket;
 
-    // the slot lambdas will be called from the serverThread's context.
     s->newConnection().connect([&](SocketServer *s)
         {
             server_newConnection++;
 
             // important: serverSocket needs to survive beyond this lambda,
-            // otherwise the connection will be closed in its dtor.
+            // otherwise the connection will be closed on scope exit.
             serverSocket = s->nextConnection();
 
             DEFERRED_COMPARE(da, serverSocket->mode(), SocketClient::Unix);
             DEFERRED_COMPARE(da, serverSocket->state(), SocketClient::Connected);
 
+            // by this point, the client will already have gotten the HUP (hang
+            // up), so they don't receive this message :(
             serverSocket->write("msg frm server");
 
             serverSocket->readyRead().connect(
@@ -58,6 +61,12 @@ void SocketTestSuite::unixSockets()
                     DEFERRED_COMPARE(da, b.size(), 15u);
                     DEFERRED_COMPARE(da, recv, "msg from client");
                 });
+
+            serverSocket->error().connect([&](SocketClient::SharedPtr ptr,
+                                              SocketClient::Error e)
+                {
+                    debug() << "Error on serverSocket " << ptr << ": " << e;
+                });
         });
 
     s->error().connect([&](SocketServer*, SocketServer::Error e)
@@ -68,7 +77,6 @@ void SocketTestSuite::unixSockets()
                        });
 
     CPPUNIT_ASSERT(s->listen(unixPathToUse));
-    CPPUNIT_ASSERT(s->isListening());
 
     std::thread serverThread([&](){loop->exec(300);});
 
@@ -79,7 +87,6 @@ void SocketTestSuite::unixSockets()
 
     client->connected().connect([&](SocketClient::SharedPtr c)
         {
-            std::lock_guard<std::mutex> g(m);
             debug() << "Client " << c.get()
                     << " connected. Send message...";
             client_connected++;
@@ -87,8 +94,7 @@ void SocketTestSuite::unixSockets()
         });
     client->readyRead().connect([&](SocketClient::SharedPtr, Buffer &&b)
         {
-            debug() << "client recv";
-            std::lock_guard<std::mutex> g(m);
+            debug() << "client received something";
             client_recv++;
             std::string receivedData(b.data(), b.end());
             DEFERRED_COMPARE(da, receivedData, "msg from server");
