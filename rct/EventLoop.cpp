@@ -27,7 +27,6 @@
 #include "Rct.h"
 #include "SocketClient.h"
 #include "Timer.h"
-#include "Log.h"
 #if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
 #  include "Log.h"
 #  include "StopWatch.h"
@@ -468,7 +467,6 @@ inline bool EventLoop::sendTimers()
 
 bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func)
 {
-    debug() << "registerSocket(fd=" << fd << " mode=" << mode << ")";
     std::lock_guard<std::mutex> locker(mMutex);
     mSockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, unsigned int)> >(func));
 
@@ -588,7 +586,6 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
 
 void EventLoop::unregisterSocket(int fd)
 {
-    debug() << "unregisterSocket(fd=" << fd << ")";
     std::lock_guard<std::mutex> locker(mMutex);
     auto socket = mSockets.find(fd);
     if (socket == mSockets.end())
@@ -718,7 +715,6 @@ unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
 
 unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 {
-    debug() << "process " << eventCount << "events...";
     unsigned int all = 0;
     int e;
 
@@ -743,7 +739,6 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 #if defined(HAVE_EPOLL)
         const uint32_t ev = events[i].events;
         const int fd = events[i].data.fd;
-        debug() << "event " << ev << " on fd=" << fd;
         if (ev & (EPOLLERR|EPOLLHUP) && !(ev & EPOLLRDHUP)) {
             // bad, take the fd out
             epoll_ctl(mPollFd, EPOLL_CTL_DEL, fd, &events[i]);

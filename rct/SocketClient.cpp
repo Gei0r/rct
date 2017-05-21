@@ -41,7 +41,6 @@ SocketClient::SocketClient(int f, unsigned int mode)
     : fd(f), socketPort(0), socketState(Connected), socketMode(mode),
       wMode(Asynchronous), writeWait(false), mLogsEnabled(true), writeOffset(0)
 {
-    debug() << "SocketClient ctor fd=" << fd;
     assert(fd >= 0);
 #ifdef HAVE_NOSIGPIPE
     int flags = 1;
@@ -69,7 +68,6 @@ SocketClient::SocketClient(int f, unsigned int mode)
 
 SocketClient::~SocketClient()
 {
-    debug() << "SocketClient dtor (fd=" << fd << ")";
     close();
 }
 
@@ -254,10 +252,7 @@ bool SocketClient::connect(const String& path)
     SocketClient::SharedPtr unixSocket = shared_from_this();
 
     int e;
-    debug() << "socket client " << this << " (fd=" << fd
-            << ") about to connect to " << path << "...";
     eintrwrap(e, ::connect(fd, &addr, sizeof(addr_un)));
-    debug() << "After connect() call, returned " << e;
     address = path;
     if (e == 0) { // we're done
         socketState = Connected;
@@ -512,8 +507,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 } else {
                     eintrwrap(e, ::write(fd, data + total, size - total));
                 }
-                DEBUG() << "SENT(2)" << (size - total) << "BYTES to " << fd << ": " << e << errno;
-                DEBUG().flags();
+                DEBUG() << "SENT(2)" << (size - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         if (wMode == Synchronous) {
@@ -744,7 +738,6 @@ bool SocketClient::init(unsigned int mode)
     }
 
     fd = ::socket(domain, type, 0);
-    debug() << "created client socket with fd=" << fd;
     if (fd < 0) {
         // bad
         return false;
