@@ -16,7 +16,7 @@
 #include <string>
 #include <mutex>
 
-#define DEFERRED_ASSERT(da, expr) (da).assert((expr), #expr, __LINE__);
+#define DEFERRED_ASSERT(da, expr) (da).d_assert((expr), #expr, __LINE__);
 #define DEFERRED_COMPARE(da, lhs, rhs) (da).compare(lhs, rhs, #lhs, #rhs, __LINE__)
 
 class DeferredAsserter
@@ -24,7 +24,7 @@ class DeferredAsserter
 public:
     DeferredAsserter() : m_testSuccessful(true) {}
 
-    bool assert(bool value, const char* expr=nullptr, int line=0)
+    bool d_assert(bool value, const char* expr=nullptr, int line=0)
     {
         if(!value)
         {

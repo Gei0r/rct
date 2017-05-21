@@ -5,6 +5,7 @@
 #include <rct/EventLoop.h>
 #include <rct/SocketServer.h>
 #include <rct/Log.h>
+#include <rct/Timer.h>
 
 #include <iostream>
 #include <thread>
@@ -24,7 +25,7 @@ void SocketTestSuite::unixSockets()
     loop->init(EventLoop::MainEventLoop);
 
     // create the server
-    SocketServer::SharedPtr s(new SocketServer);
+    SocketServer::SharedPtr serverListenSock(new SocketServer);
 
     // the following variables count how often certain slots are called:
     int server_newConnection = 0;
@@ -34,109 +35,113 @@ void SocketTestSuite::unixSockets()
 
     // This will hold the client connection that the server gets once a client
     // connects.
-    SocketClient::SharedPtr serverSocket;
+    SocketClient::SharedPtr server_socketToClient;
 
-    s->newConnection().connect([&](SocketServer *s)
+    serverListenSock->newConnection().connect([&](SocketServer *serverListenSock)
         {
             server_newConnection++;
 
-            // important: serverSocket needs to survive beyond this lambda,
+            // important: server_socketToClient needs to survive beyond this lambda,
             // otherwise the connection will be closed on scope exit.
-            serverSocket = s->nextConnection();
+            server_socketToClient = serverListenSock->nextConnection();
 
-            DEFERRED_COMPARE(da, serverSocket->mode(), SocketClient::Unix);
-            DEFERRED_COMPARE(da, serverSocket->state(), SocketClient::Connected);
+            DEFERRED_COMPARE(da, server_socketToClient->mode(), SocketClient::Unix);
+            DEFERRED_COMPARE(da, server_socketToClient->state(), SocketClient::Connected);
 
-            // by this point, the client will already have gotten the HUP (hang
-            // up), so they don't receive this message :(
-            serverSocket->write("msg frm server");
+            server_socketToClient->write("msg from server");
 
-            serverSocket->readyRead().connect(
-                [&](SocketClient::SharedPtr ptr, Buffer &&b)
+            server_socketToClient->readyRead().connect(
+                [&](SocketClient::SharedPtr, Buffer &&b)
                 {
                     server_recv++;
-                    debug() << "Server received from socket " << ptr.get();
                     std::string recv(b.data(), b.end());
                     DEFERRED_COMPARE(da, b.size(), 15u);
                     DEFERRED_COMPARE(da, recv, "msg from client");
                 });
 
-            serverSocket->error().connect([&](SocketClient::SharedPtr ptr,
+            server_socketToClient->error().connect([&](SocketClient::SharedPtr,
                                               SocketClient::Error e)
                 {
-                    debug() << "Error on serverSocket " << ptr << ": " << e;
+                    debug() << "Error on server_socketToClient " << e;
                 });
         });
 
-    s->error().connect([&](SocketServer*, SocketServer::Error e)
+    serverListenSock->error().connect([&](SocketServer*, SocketServer::Error e)
                        {
                            std::ostringstream oss;
                            oss << "Server error: " << e;
                            da.fail(oss.str());
                        });
 
-    CPPUNIT_ASSERT(s->listen(unixPathToUse));
+    CPPUNIT_ASSERT(serverListenSock->listen(unixPathToUse));
 
-    std::thread serverThread([&](){loop->exec(300);});
+    // The server is now set up and once we start th event loop, it will listen
+    // for new connections.
+    // We now set up two timers.
+    // In the first timer, we create a client that tries to connect to the
+    // SocketServer. Once the connection is sucessful, we send "msg from
+    // client". We also expect to get the message "msg from server" once we
+    // connect to the server.
+    // In the first timer, we expect that the connection is still alive on both
+    // ends. We then close the connection on one end.
+    // We expect that the connection is closed on BOTH ends when the EventLoop
+    // finishes.
 
-    realSleep(100);
-    debug() << "creating client...";
-    SocketClient::SharedPtr client(new SocketClient(SocketClient::Unix));
-    debug() << "client created." << client.get();
-
-    client->connected().connect([&](SocketClient::SharedPtr c)
+    SocketClient::SharedPtr client;
+    loop->registerTimer([&](int /*timerid*/)
         {
-            debug() << "Client " << c.get()
-                    << " connected. Send message...";
-            client_connected++;
-            c->write("msg from client");
-        });
-    client->readyRead().connect([&](SocketClient::SharedPtr, Buffer &&b)
-        {
-            debug() << "client received something";
-            client_recv++;
-            std::string receivedData(b.data(), b.end());
-            DEFERRED_COMPARE(da, receivedData, "msg from server");
-        });
-    client->error().connect([&](SocketClient::SharedPtr ptr,
-                                SocketClient::Error e)
-        {
-            debug() << "client " << ptr.get() << " got error " << e;
-        });
+            client = SocketClient::SharedPtr(new SocketClient(SocketClient::Unix));
 
-    client->disconnected().connect([&](SocketClient::SharedPtr ptr)
-        {
-            debug() << "Client " << ptr.get() << " disconnected";
-        });
+            client->connected().connect([&](SocketClient::SharedPtr c)
+                {
+                    client_connected++;
+                    c->write("msg from client");
+                });
 
+            client->readyRead().connect([&](SocketClient::SharedPtr, Buffer &&b)
+                {
+                    // we expect to get some data upon connection to the server
+                    client_recv++;
+                    std::string receivedData(b.data(), b.end());
+                    DEFERRED_COMPARE(da, receivedData, "msg from server");
+                });
+
+            client->error().connect([&](SocketClient::SharedPtr, SocketClient::Error e)
+                {   // shouldn't happen
+                    debug() << "client " << " got error " << e;
+                });
+
+            client->disconnected().connect([&](SocketClient::SharedPtr)
+                {   // shouldn't happen
+                    debug() << "Client disconnected";
+                });
+
+            // now that the callbacks are all set up, we can actually connect.
+            DEFERRED_ASSERT(da, client->connect(unixPathToUse));
+        },
+        10, Timer::SingleShot);
+
+    loop->registerTimer([&](int /*timerid*/)
+        {
+            // should still be connected
+            DEFERRED_COMPARE(da, client->state(),                SocketClient::Connected);
+            DEFERRED_COMPARE(da, server_socketToClient->state(), SocketClient::Connected);
+
+            client->close();
+        }, 100, Timer::SingleShot);
+
+    // now that all the callbacks and all the timers are set up, we set the
+    // whole thing in motion.
+    loop->exec(200);
+
+    // In the second timer (timeout 100 ms), we disconnected the client end of
+    // the connection. Now both ends should be in disconnected state.
     CPPUNIT_ASSERT(client->state() == SocketClient::Disconnected);
-
-    debug() << "client about to connect to " << unixPathToUse << "...";
-    CPPUNIT_ASSERT(client->connect(unixPathToUse));
-    debug() << "client connect done";
-
-    realSleep(100);
-    // client->close();
-
-    serverThread.join();
+    CPPUNIT_ASSERT(server_socketToClient->state() == SocketClient::Disconnected);
 
     CPPUNIT_ASSERT(server_newConnection == 1);
     CPPUNIT_ASSERT(client_connected == 1);
     CPPUNIT_ASSERT(client_recv == 1);
     CPPUNIT_ASSERT(server_recv == 1);
     CPPUNIT_ASSERT(da.result());
-
-}
-
-void SocketTestSuite::realSleep(int ms)
-{
-#ifdef _WIN32
-    Sleep(ms);
-#else
-    timespec s;
-    s.tv_sec = ms/1000;
-    s.tv_nsec = (ms%1000) * 1000 * 1000;
-
-    while(nanosleep(&s, &s) == -1 && errno == EINTR);
-#endif
 }

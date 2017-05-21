@@ -149,8 +149,11 @@ public:
     unsigned int processSocket(int fd, int timeout = -1);
 
     /**
+     * @param func Callback function when the timer expires. Will be called
+     *             with the timer id as parameter.
      * @param timeout timeout in ms
      * @param flags see Timer.h
+     * @return ID of the new timer
      */
     int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
     void unregisterTimer(int id);
