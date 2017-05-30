@@ -44,10 +44,8 @@ public:
 
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
-#ifndef _WIN32
-    bool listen(const Path &path); // UNIX
-    bool listenFD(int fd);         // UNIX
-#endif
+    bool listen(const Path &path); // UNIX, fallback to TCP on Windows
+    bool listenFD(int fd);         // UNIX, always failed on Windows
     bool isListening() const { return fd != -1; }
 
     /**

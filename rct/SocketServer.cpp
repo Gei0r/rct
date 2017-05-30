@@ -143,6 +143,41 @@ bool SocketServer::listenFD(int fdArg)
 
     return commonListen();
 }
+#else
+
+bool SocketServer::listen(const Path &p)
+{
+    if (!listen(0, IPv4))
+        return false;
+    union {
+        sockaddr_in addr_in;
+        sockaddr addr;
+    };
+    int addrlen = sizeof(addr_in);
+    if (getsockname(fd, &addr, &addrlen) == 0 &&
+        addr_in.sin_family == AF_INET &&
+        addrlen == sizeof(addr_in))
+    {
+        int local_port = ntohs(addr_in.sin_port);
+        if (!p.write(String::number(local_port))) {
+            p.rm();
+        }
+        path = p;
+        return true;
+    }
+    return false;
+}
+
+// [FIXIT] always failed on Windows
+bool SocketServer::listenFD(int fdArg)
+{
+    close();
+    // fd = fdArg;
+    // return commonListen();
+    (void)fdArg;
+    return false;
+}
+
 #endif  // _WIN32
 
 bool SocketServer::commonBindAndListen(sockaddr* addr, size_t size)

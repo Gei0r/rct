@@ -23,6 +23,7 @@
 #elif defined(HAVE_SELECT)
 #  ifdef _WIN32
 #    include <Winsock2.h>
+#    include <rct/WindowsSocketGlobalGuard.h>
 #  else
 #    include <sys/select.h>
 #  endif

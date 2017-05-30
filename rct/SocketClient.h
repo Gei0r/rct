@@ -32,9 +32,7 @@ public:
     enum State { Disconnected, Connecting, Connected };
     State state() const { return socketState; }
     unsigned int mode() const { return socketMode; }
-#ifndef _WIN32
     bool connect(const String& path); // UNIX
-#endif
     bool connect(const String& host, uint16_t port); // TCP
     bool bind(uint16_t port); // UDP
 

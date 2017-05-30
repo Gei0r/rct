@@ -56,7 +56,6 @@ void Connection::checkData()
         onDataAvailable(mSocketClient, std::forward<Buffer>(mSocketClient->takeBuffer()));
 }
 
-#ifndef _WIN32
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
     assert(!mSocketClient);
@@ -81,7 +80,6 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
     }
     return true;
 }
-#endif
 
 bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {

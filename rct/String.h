@@ -1,5 +1,13 @@
-#ifndef String_h
-#define String_h
+#ifndef STRING_H
+#define STRING_H
+
+#if defined(__MINGW32__) && defined(__USE_MINGW_ANSI_STDIO) && defined(__MINGW_PRINTF_FORMAT)
+#  define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__MINGW_PRINTF_FORMAT, fmt, firstarg)))
+#elif defined(_WIN32)
+#  define RCT_PRINTF_WARNING(fmt, firstarg)
+#else
+#  define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
+#endif
 
 #include <errno.h>
 #include <ctype.h>
@@ -14,17 +22,6 @@
 
 #include <rct/List.h>
 
-#ifdef __MINGW32__
-    // Mingw does not supply its own runtime environment, but uses the one
-    // supplied by windows (msvcrt).
-    // Msvcrt used to not support the "long long" format specifiers, so mingw
-    // issues a warning when such a specifier is used.
-    // Newer versions of the msvcrt *do* support the specifiers however, so the
-    // warning is useless.
-#  define RCT_PRINTF_WARNING(fmt, firstarg)
-#else
-#  define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
-#endif
 class String
 {
 public:
