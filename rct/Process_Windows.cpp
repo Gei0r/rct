@@ -406,3 +406,29 @@ String Process::errorString() const
     std::lock_guard<std::mutex> lock(mMutex);
     return mErrorString;
 }
+
+// Values for the second argument to access.
+// These may be OR'd together.
+#define R_OK    4       // Test for read permission.
+#define W_OK    2       // Test for write permission.
+// #define X_OK    1       // Test for execute permission - unsupported in windows
+#define F_OK    0       // Test for existence.
+Path Process::findCommand(const String &command, const char *path)
+{
+    /// @todo use Path::isAbsolute() and check if the file actually exists
+    if (command.isEmpty() || command.at(0) == '/')
+        return command;
+
+    if (!path)
+        path = getenv("PATH");
+    if (!path)
+        return Path();
+    bool ok;
+    const List<String> paths = String(path).split(':');
+    for (List<String>::const_iterator it = paths.begin(); it != paths.end(); ++it) {
+        const Path ret = Path::resolved(command, Path::RealPath, *it, &ok);
+        if (ok && !_access(ret.nullTerminated(), R_OK))
+            return ret;
+    }
+    return Path();
+}

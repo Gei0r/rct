@@ -273,6 +273,16 @@ bool SocketClient::connect(const String& path)
     }
     return true;
 }
+#else
+bool SocketClient::connect(const String& path)
+{
+    Path p = path;
+    String s = p.readAll();
+    unsigned long port = s.toULong();
+    bool r = connect("127.0.0.1", port);
+    socketMode = Unix;
+    return r;
+}
 #endif
 
 bool SocketClient::bind(uint16_t port)
@@ -359,7 +369,7 @@ void SocketClient::setMulticastTTL(unsigned char ttl)
 }
 
 #ifdef _WIN32
-typedef int (*GetNameFunc)(SOCKET, sockaddr*, socklen_t*);
+typedef int (WINAPI *GetNameFunc)(SOCKET, sockaddr*, socklen_t*);
 #else
 typedef int (*GetNameFunc)(int, sockaddr*, socklen_t*);
 #endif
