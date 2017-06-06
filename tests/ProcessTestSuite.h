@@ -15,6 +15,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(startNonExistingProgram);
     CPPUNIT_TEST(startUnicodeProgram);
     CPPUNIT_TEST(commandLineArgs);
+    CPPUNIT_TEST(findCommand);
 #ifdef _WIN32
     CPPUNIT_TEST(killWindows);
     CPPUNIT_TEST(destructorWindows);
@@ -64,6 +65,9 @@ protected:
 
     // Add some command line arguments
     void commandLineArgs();
+
+    // Find a command in PATH
+    void findCommand();
 
 #ifdef _WIN32
     // test "kill" on windows -- it can only terminate the child.

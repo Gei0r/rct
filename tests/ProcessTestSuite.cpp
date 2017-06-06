@@ -403,6 +403,30 @@ void ProcessTestSuite::commandLineArgs()
     CPPUNIT_ASSERT(gotArgs[5] == "\n");
 }
 
+void ProcessTestSuite::findCommand()
+{
+
+
+#ifdef _WIN32
+    // find something in the operating system path
+    CPPUNIT_ASSERT(!Process::findCommand("calc.exe").isEmpty());
+
+    // find without .exe extension
+    CPPUNIT_ASSERT(!Process::findCommand("calc").isEmpty());
+#else
+    CPPUNIT_ASSERT(!Process::findCommand("curl").isEmpty());
+#endif
+
+    // find something that doesn't exist  --> should return empty Path()
+    CPPUNIT_ASSERT(Process::findCommand("thisCommandDoesNotExist").isEmpty());
+
+    // find something in the current dir
+    CPPUNIT_ASSERT(!Process::findCommand("ChildProcess", ".").isEmpty());
+
+    // find command with special characters
+    CPPUNIT_ASSERT(!Process::findCommand(u8"ChildProcess_Äßéמש最終", ".").isEmpty());
+}
+
 #ifdef _WIN32
 void ProcessTestSuite::killWindows()
 {

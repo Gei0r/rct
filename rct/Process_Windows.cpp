@@ -407,28 +407,41 @@ String Process::errorString() const
     return mErrorString;
 }
 
-// Values for the second argument to access.
-// These may be OR'd together.
-#define R_OK    4       // Test for read permission.
-#define W_OK    2       // Test for write permission.
-// #define X_OK    1       // Test for execute permission - unsupported in windows
-#define F_OK    0       // Test for existence.
 Path Process::findCommand(const String &command, const char *path)
 {
-    /// @todo use Path::isAbsolute() and check if the file actually exists
     if (command.isEmpty() || command.at(0) == '/')
         return command;
 
-    if (!path)
-        path = getenv("PATH");
-    if (!path)
-        return Path();
+    if (!path) path = getenv("PATH");
+    if (!path) return Path();
+
     bool ok;
-    const List<String> paths = String(path).split(':');
-    for (List<String>::const_iterator it = paths.begin(); it != paths.end(); ++it) {
-        const Path ret = Path::resolved(command, Path::RealPath, *it, &ok);
-        if (ok && !_access(ret.nullTerminated(), R_OK))
+    const List<String> paths = String(path).split(';');
+    for (List<String>::const_iterator it = paths.begin(); it != paths.end(); ++it)
+    {
+        // Values for the second argument to _waccess
+        // (see https://msdn.microsoft.com/en-us/library/1w06ktdy.aspx)
+        // These may be OR'd together.
+        enum WAccessModeParameter
+        {
+            WAccess_R=4,    ///< Test for read permission
+            WAccess_W=2,    ///< Test for write permission
+            // WAccess_X=1, ///< Test for execute permission (not supported on win)
+            WAccess_F=0     ///< Test for existence
+        };
+
+        Path ret = Path::resolved(command, Path::RealPath, *it, &ok);
+        if (ok && !_waccess(Utf8To16(ret.c_str()).asWchar_t(), WAccess_R))
+        {
             return ret;
+        }
+
+        // try again, this time with .exe suffix
+        ret = Path::resolved(command + ".exe", Path::RealPath, *it, &ok);
+        if (ok && !_waccess(Utf8To16(ret.c_str()).asWchar_t(), WAccess_R))
+        {
+            return ret;
+        }
     }
     return Path();
 }
