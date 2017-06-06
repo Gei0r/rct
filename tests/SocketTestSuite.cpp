@@ -37,13 +37,13 @@ void SocketTestSuite::unixSockets()
     // connects.
     SocketClient::SharedPtr server_socketToClient;
 
-    serverListenSock->newConnection().connect([&](SocketServer *serverListenSock)
+    serverListenSock->newConnection().connect([&](SocketServer *f_serverListenSock)
         {
             server_newConnection++;
 
             // important: server_socketToClient needs to survive beyond this lambda,
             // otherwise the connection will be closed on scope exit.
-            server_socketToClient = serverListenSock->nextConnection();
+            server_socketToClient = f_serverListenSock->nextConnection();
 
             DEFERRED_COMPARE(da, server_socketToClient->mode(), SocketClient::Unix);
             DEFERRED_COMPARE(da, server_socketToClient->state(), SocketClient::Connected);
