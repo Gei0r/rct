@@ -158,7 +158,8 @@ endif ()
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND RCT_SOURCES
         ${CMAKE_CURRENT_LIST_DIR}/rct/Process_Windows.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsUnicodeConversion.cpp)
+        ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsUnicodeConversion.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsSocketGlobalGuard.cpp)
 else ()
      list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp)
 endif ()
