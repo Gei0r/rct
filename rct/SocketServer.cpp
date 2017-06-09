@@ -144,7 +144,7 @@ bool SocketServer::listenFD(int fdArg)
     return commonListen();
 }
 #else
-
+// windows implementation
 bool SocketServer::listen(const Path &p)
 {
     if (!listen(0, IPv4))

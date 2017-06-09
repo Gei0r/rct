@@ -25,6 +25,7 @@
 #endif
 
 #include "Rct.h"
+#include "Log.h"
 #include "SocketClient.h"
 #include "Timer.h"
 #if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
@@ -126,7 +127,55 @@ void EventLoop::init(unsigned int flags)
 
     threadId = std::this_thread::get_id();
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+    // on windows, we use a udp connection to wake up from select().
+
+    // create the pipes. We will call select() with the read end. When we
+    // want to wake up from select(), we write something to the write end so
+    // that the read end becomes ready and we wake up from select().
+    mEventPipe[EVENT_PIPE_READ_END]  = ::socket(AF_INET, SOCK_DGRAM, 0);
+    mEventPipe[EVENT_PIPE_WRITE_END] = ::socket(AF_INET, SOCK_DGRAM, 0);
+
+    if(mEventPipe[EVENT_PIPE_READ_END]  == (signed)INVALID_SOCKET ||
+       mEventPipe[EVENT_PIPE_WRITE_END] == (signed)INVALID_SOCKET) {
+        debug() << "Error creating event pipe socket: "
+                << WSAGetLastError();
+        cleanup();
+        return;
+    }
+
+    sockaddr_in listenAddr;
+    memset(&listenAddr, 0, sizeof(listenAddr));
+
+    listenAddr.sin_family = AF_INET;
+    listenAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    listenAddr.sin_port = 0;  // use port selected by the operating system
+
+    if(bind(mEventPipe[EVENT_PIPE_READ_END],
+            reinterpret_cast<sockaddr*>(&listenAddr),
+            sizeof(listenAddr)) < 0) {
+        debug() << "Error listening on event pipe: "
+                << WSAGetLastError();
+        cleanup();
+        return;
+    }
+
+    // find out the port that the operating system assigned to us
+    int len = sizeof(listenAddr);
+    if(getsockname(mEventPipe[EVENT_PIPE_READ_END],
+                   reinterpret_cast<sockaddr*>(&listenAddr),
+                   &len) != 0) {
+        debug() << "Could not read back event pipe listening port: "
+                << WSAGetLastError();
+        cleanup();
+        return;
+    }
+
+    mEventPort = ntohs(listenAddr.sin_port);
+    debug() << "Event pipe listening to udp port " << mEventPort;
+
+#else
     int e = ::pipe(mEventPipe);
     if (e == -1) {
         mEventPipe[0] = -1;

@@ -18,9 +18,9 @@ void EventLoopTestSuite::timer()
         loop->registerTimer([&](int f_timerId) {
                 DEFERRED_COMPARE(da, f_timerId, timerId);
                 timerCalled++;
-            }, 10, Timer::SingleShot);
+            }, 60000, Timer::SingleShot);
 
-    loop->exec(50);
+    loop->exec(120000);
 
     CPPUNIT_ASSERT(timerCalled == 1);
     CPPUNIT_ASSERT(da.result());

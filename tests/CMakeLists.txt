@@ -25,11 +25,6 @@ endif ()
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
 set(RCT_TEST_SRCS main.cpp
-                  PathTestSuite.cpp
-                  ProcessTestSuite.cpp
-                  MemoryMappedFileTestSuite.cpp
-                  SHA256TestSuite.cpp
-                  StringTestSuite.cpp
                   EventLoopTestSuite.cpp
                   )
 

@@ -212,7 +212,19 @@ private:
     std::thread::id threadId;
 
     std::queue<Event*> mEvents;
-    int mEventPipe[2];
+
+    enum
+    {
+        EVENT_PIPE_READ_END,
+        EVENT_PIPE_WRITE_END,
+        EVENT_PIPE_NUM_ENDS
+    };
+
+    int mEventPipe[EVENT_PIPE_NUM_ENDS];
+
+#ifdef _WIN32
+    uint16_t mEventPort;
+#endif
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     int mPollFd;
 #endif
