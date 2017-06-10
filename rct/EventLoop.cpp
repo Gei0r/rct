@@ -176,7 +176,6 @@ void EventLoop::init(unsigned int flags)
     }
 
     mEventPort = ntohs(listenAddr.sin_port);
-    debug() << "Event pipe listening to udp port " << mEventPort;
 
 #else
     int e = ::pipe(mEventPipe);
@@ -801,10 +800,6 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
         local = mSockets;
     }
     auto socket = local.begin();
-    if (socket == local.end()) {
-        fprintf(stderr, "wanted to processSocketEvents but no sockets present\n");
-        return 0;
-    }
 #endif
 
     for (int i = 0; i < eventCount; ++i) {
@@ -878,7 +873,6 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 #elif defined(HAVE_SELECT)
         // iterate through the sockets until we find one in either fd_set
         int fd = -1;
-        //assert(socket != local.end());
         while (socket != local.end()) {
             if (FD_ISSET(socket->first, events->rdfd)) {
                 // go
@@ -906,6 +900,29 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 #endif
         if (mode) {
             if (fd == mEventPipe[0]) {
+#ifdef _WIN32
+                sockaddr_in senderAddr;
+                int senderAddrSize = sizeof(senderAddr);
+                char readValue;
+
+                ssize_t recvSize = recvfrom(mEventPipe[EVENT_PIPE_READ_END],
+                                            &readValue, sizeof(readValue), 0,
+                                            reinterpret_cast<sockaddr*>(&senderAddr),
+                                            &senderAddrSize);
+
+                if(recvSize != sizeof(readValue))
+                {
+                    ::error() << "Error receiving from event pipe: "
+                            << WSAGetLastError();
+                    return GeneralError;
+                }
+
+                if(readValue != 'w')
+                {
+                    ::error() << "Received strange value through event pipe: " << readValue;
+                    return GeneralError;
+                }
+#else
                 // drain the pipe
                 char q;
                 do {
@@ -920,6 +937,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                     fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, Rct::strerror().constData());
                     return GeneralError;
                 }
+#endif
             } else {
                 all |= fireSocket(fd, mode);
             }

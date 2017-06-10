@@ -10,10 +10,12 @@ class EventLoopTestSuite : public CPPUNIT_NS::TestFixture
 {
     CPPUNIT_TEST_SUITE(EventLoopTestSuite);
     CPPUNIT_TEST(timer);
+    CPPUNIT_TEST(timer_otherThread);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
     void timer();
+    void timer_otherThread();
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(EventLoopTestSuite);
