@@ -91,6 +91,9 @@ static void signalHandler(int /*sig*/)
 
 EventLoop::EventLoop()
     :
+#ifdef _WIN32
+    mEventPort(0),
+#endif
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     mPollFd(-1),
 #endif
@@ -335,12 +338,33 @@ void EventLoop::post(Event* event)
 
 void EventLoop::wakeup()
 {
-    if (std::this_thread::get_id() == threadId)
+    if (std::this_thread::get_id() == threadId) {
         return;
+    }
+#ifdef _WIN32
+    // on windows, we wake up by writing something to the udp port mEventPort.
+    sockaddr_in sendAddr;
+    memset(&sendAddr, 0, sizeof(sendAddr));
+
+    sendAddr.sin_family = AF_INET;
+    sendAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sendAddr.sin_port = htons(mEventPort);
+
+    const char msgToSend = 'w';
+    int res = sendto(mEventPipe[EVENT_PIPE_WRITE_END],
+                     &msgToSend, sizeof(msgToSend), 0,
+                     reinterpret_cast<sockaddr*>(&sendAddr), sizeof(sendAddr));
+
+    if(res != sizeof(msgToSend)) {
+        debug() << "Could not wake up from select: " << WSAGetLastError();
+    }
+#else
+
 
     char b = 'w';
     int w;
     eintrwrap(w, ::write(mEventPipe[1], &b, 1));
+#endif
 }
 
 void EventLoop::quit()
