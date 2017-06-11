@@ -38,7 +38,11 @@ void SocketServer::close()
         return;
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
         loop->unregisterSocket(fd);
+#ifdef _WIN32
+    ::closesocket(fd);
+#else
     ::close(fd);
+#endif
     fd = -1;
     if (!path.isEmpty()) {
         Path::rm(path);
@@ -250,7 +254,16 @@ void SocketServer::socketCallback(int /*fd*/, int mode)
     if (!(mode & EventLoop::SocketRead))
         return;
 
+#ifndef _WIN32
+    // on *nix, we use non-blocking i/o, so we can call accept() many times
+    // and get new connections until the call fails (the call won't block).
     for (;;) {
+#else
+    // on windows, we don't have non-blocking i/o, so if we call accept() more
+    // times than there are connections pending, the last call to accept() will
+    // block indefinately.
+    if(true) {
+#endif
         eintrwrap(e, ::accept(fd, &client, &size));
         if (e == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {

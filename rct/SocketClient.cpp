@@ -80,7 +80,11 @@ void SocketClient::close()
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
             loop->unregisterSocket(fd);
     }
+#ifdef _WIN32
+    ::closesocket(fd);
+#else
     ::close(fd);
+#endif
     socketPort = 0;
     address.clear();
     fd = -1;
@@ -646,7 +650,19 @@ void SocketClient::socketCallback(int f, int mode)
         int e;
 
         unsigned int total = 0;
+#ifndef _WIN32
+        // on *nix, we use non-blocking io. So we can call read()/recvfrom() as
+        // often as we like and it will return EWOULDBLOCK once there is no
+        // more data.
         for(;;) {
+#else
+        // on windows, we can't use non-blocking io. So if we try to call
+        // recv() more often than there is data available, the call will block
+        // indefinately. Therefore, we only call the function once.
+        bool windowsLoopFirstCall = true;
+        while(windowsLoopFirstCall) {
+            windowsLoopFirstCall = false;
+#endif
             unsigned int rem = readBuffer.capacity() - readBuffer.size();
             // printf("reading, remaining size %u\n", rem);
             if (rem <= AllocateAt) {
@@ -664,7 +680,11 @@ void SocketClient::socketCallback(int f, int mode)
                     eintrwrap(e, ::recvfrom(fd, reinterpret_cast<char*>(readBuffer.end()), rem, 0, &fromAddr, &fromLen));
                 }
             } else {
+#ifdef _WIN32
+                eintrwrap(e, ::recv(fd, reinterpret_cast<char*>(readBuffer.end()), rem, 0));
+#else
                 eintrwrap(e, ::read(fd, readBuffer.end(), rem));
+#endif
             }
             DEBUG() << "RECEIVED(2)" << rem << "BYTES" << e << errno;
             if (e == -1) {
