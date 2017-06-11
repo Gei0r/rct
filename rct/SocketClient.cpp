@@ -515,7 +515,11 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                     eintrwrap(e, ::sendto(fd, data + total, size - total,
                                           sendFlags, resolver.addr, resolver.size));
                 } else {
+#ifdef _WIN32
+                    eintrwrap(e, ::send(fd, data + total, size - total, 0));
+#else
                     eintrwrap(e, ::write(fd, data + total, size - total));
+#endif
                 }
                 DEBUG() << "SENT(2)" << (size - total) << "BYTES" << e << errno;
                 if (e == -1) {
