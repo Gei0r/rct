@@ -28,6 +28,7 @@
 #  ifndef HOST_NAME_MAX
 #    define HOST_NAME_MAX 256 //according to gethostname documentation on MSDN
 #  endif
+#  include "Process.h"
 #else
 #  include <arpa/inet.h>
 #  include <netdb.h>
@@ -209,6 +210,28 @@ void findExecutablePath(const char *argv0)
             }
         }
     }
+
+#ifdef _WIN32
+    // todo: maybe use this implementation on all platforms
+    {
+        Path p = Process::findCommand(argv0);
+        if(!p.isEmpty())
+        {
+            //we found the command in PATH
+            sExecutablePath = p;
+            debug() << "exec path: " << p;
+            return;
+        }
+
+        p = Process::findCommand(argv0, ".");
+        if(!p.isEmpty())
+        {
+            //we found the command in PATH
+            sExecutablePath = p;
+            return;
+        }
+    }
+#endif
     const char *path = getenv("PATH");
 
     const List<String> paths = String(path).split(Path::ENV_PATH_SEPARATOR);
