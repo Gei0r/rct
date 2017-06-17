@@ -101,7 +101,7 @@ public:
         Async
     };
 
-    void init(unsigned int flags = None);
+    bool init(unsigned int flags = None);
 
     unsigned int flags() const { return mFlags; }
 

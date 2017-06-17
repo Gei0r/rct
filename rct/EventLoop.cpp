@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
+#  include "WindowsSocketGlobalGuard.h"
 #  include <Winsock2.h>
 #else
 #  include <sys/socket.h>
@@ -123,9 +124,9 @@ void EventLoop::cleanupLocalEventLoop()
     }
 }
 
-void EventLoop::init(unsigned int flags)
+bool EventLoop::init(unsigned int flags)
 {
-    std::lock_guard<std::mutex> locker(mMutex);
+    std::unique_lock<std::mutex> locker(mMutex);
     mFlags = flags;
 
     threadId = std::this_thread::get_id();
@@ -133,6 +134,14 @@ void EventLoop::init(unsigned int flags)
 #ifdef _WIN32
 
     // on windows, we use a udp connection to wake up from select().
+
+    // This line should not actually be required, because a static
+    // instance of WindowsSocketGuard is defined in
+    // WindowsSocketGlobalGuard.cpp, which is compiled into rct.
+    // However, if rct is used linked as a static library, this object is
+    // somehow not initialized and WSAStartup() is not called as intended.
+    // On the other hand, this line doesn't really hurt either ;).
+    WindowsSocketGlobalGuard::get();
 
     // create the pipes. We will call select() with the read end. When we
     // want to wake up from select(), we write something to the write end so
@@ -144,8 +153,9 @@ void EventLoop::init(unsigned int flags)
        mEventPipe[EVENT_PIPE_WRITE_END] == (signed)INVALID_SOCKET) {
         debug() << "Error creating event pipe socket: "
                 << WSAGetLastError();
+        locker.unlock();
         cleanup();
-        return;
+        return false;
     }
 
     sockaddr_in listenAddr;
@@ -161,7 +171,7 @@ void EventLoop::init(unsigned int flags)
         debug() << "Error listening on event pipe: "
                 << WSAGetLastError();
         cleanup();
-        return;
+        return false;
     }
 
     // find out the port that the operating system assigned to us
@@ -172,7 +182,7 @@ void EventLoop::init(unsigned int flags)
         debug() << "Could not read back event pipe listening port: "
                 << WSAGetLastError();
         cleanup();
-        return;
+        return false;
     }
 
     mEventPort = ntohs(listenAddr.sin_port);
@@ -183,11 +193,11 @@ void EventLoop::init(unsigned int flags)
         mEventPipe[0] = -1;
         mEventPipe[1] = -1;
         cleanup();
-        return;
+        return false;
     }
     if (!SocketClient::setFlags(mEventPipe[0], O_NONBLOCK, F_GETFL, F_SETFL)) {
         cleanup();
-        return;
+        return false;
     }
 #endif  // not _WIN32
 
@@ -203,7 +213,7 @@ void EventLoop::init(unsigned int flags)
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     if (mPollFd == -1) {
         cleanup();
-        return;
+        return false;
     }
 #endif
 
@@ -226,7 +236,7 @@ void EventLoop::init(unsigned int flags)
 #ifndef _WIN32
     if (e == -1) {
         cleanup();
-        return;
+        return false;
     }
 
     if (mFlags & (EnableSigIntHandler | EnableSigTermHandler)) {
@@ -240,14 +250,14 @@ void EventLoop::init(unsigned int flags)
         if (mFlags & EnableSigIntHandler) {
             if (::sigaction(SIGINT, &act, 0) == -1) {
                 cleanup();
-                return;
+                return false;
             }
         }
 
         if (mFlags & EnableSigTermHandler) {
             if (::sigaction(SIGTERM, &act, 0) == -1) {
                 cleanup();
-                return;
+                return false;
             }
         }
     }
@@ -259,6 +269,8 @@ void EventLoop::init(unsigned int flags)
         std::lock_guard<std::mutex> l(mMainMutex);
         sMainLoop = that;
     }
+
+    return true;
 }
 
 void EventLoop::cleanup()
@@ -305,10 +317,12 @@ void EventLoop::cleanup()
         ::close(mEventPipe[1]);
     if (mFlags & MainEventLoop)
         sMainLoop.reset();
+#ifndef _WIN32
     if (mFlags & EnableSigIntHandler) {
         assert(sMainEventPipe >= 0);
         sMainEventPipe = -1;
     }
+#endif
 }
 
 EventLoop::SharedPtr EventLoop::eventLoop()

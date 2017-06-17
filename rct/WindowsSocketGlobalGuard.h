@@ -7,7 +7,7 @@ struct WindowsSocketGlobalGuard
 {
     typedef WindowsSocketGuard::value_type value_type;
     static WindowsSocketGuard mGuard;
-    value_type & get() {
+    static value_type & get() {
         return mGuard.get();
     }
 };
