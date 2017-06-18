@@ -401,6 +401,41 @@ Path Path::canonicalized(const String &path)
     return p;
 }
 
+bool Path::rename(const Path &f_newName)
+{
+    if(type() != File && type() != Directory)
+    {
+        error() << "Can't rename " << *this << " to " << f_newName
+                << ": Not a file or directory.";
+        return false;
+    }
+
+#ifdef _WIN32
+    if(f_newName.exists())
+    {
+        // on windows, rename() fails if the target exists.
+        f_newName.rm();
+    }
+
+    int result = _wrename(Utf8To16(c_str()).asWchar_t(),
+                          Utf8To16(f_newName.c_str()).asWchar_t());
+#else
+    int result = rename(c_str(), f_newName.c_str());
+#endif
+
+    if(result != 0)
+    {
+        error() << "Can't rename " << *this << " to " << f_newName
+                << ": errno=" << errno;
+        return false;
+    }
+
+    // rename was successful
+    *this = f_newName;
+
+    return true;
+}
+
 bool Path::mksubdir(const String &path) const
 {
     if (isDir()) {

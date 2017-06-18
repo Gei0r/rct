@@ -286,7 +286,8 @@ bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
             while (true) {
                 const Path rotated = String::format<64>("%s.%d", file.constData(), ++i);
                 if (!rotated.exists()) {
-                    if (rename(file.constData(), rotated.constData())) {
+                    Path nonConstFile = file;
+                    if (!nonConstFile.rename(rotated)) {
                         error() << "Couldn't rotate log file" << file << "to" << rotated << Rct::strerror();
                     }
                     break;

@@ -88,7 +88,7 @@ make install
 #+BEGIN_SRC cmd
 mkdir build
 cd build
-set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin;C:\cppunit\bin
+set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin;C:\cppunit\bin;C:\windows\system32
 cmake -G "MSYS Makefiles" -DWITH_TESTS=1 ..
 make -j4
 cp librct.dll tests

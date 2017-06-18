@@ -35,7 +35,7 @@ public:
         mFile = 0;
         delete mSerializer;
         mSerializer = 0;
-        if (rename(mTempFilePath.constData(), mPath.constData())) {
+        if (!mTempFilePath.rename(mPath)) {
             Path::rm(mTempFilePath);
             mError = String::format<128>("rename error: %d %s", errno, Rct::strerror().constData());
             return false;

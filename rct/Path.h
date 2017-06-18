@@ -109,6 +109,18 @@ public:
     };
 
     /**
+     * Rename the file or directory currently pointed to by this Path object to
+     * the new name passed as the parameter.
+     *
+     * If the target file or directory already exists, it is overwritten.
+     *
+     * Only works if type() is File or Directory.
+     *
+     * @return true on success, false otherwise.
+     */
+    bool rename(const Path &newName);
+
+    /**
      * Create the directory that is represented by this path.
      *
      * @param permissions ignored on windows.

@@ -10,10 +10,6 @@
 #  include <Windows.h>
 #endif
 
-void PathTestSuite::setUp() {}
-
-void PathTestSuite::tearDown() {}
-
 #ifdef _WIN32
 
 class CwdChanger
@@ -191,4 +187,92 @@ void PathTestSuite::unicode()
 
     CPPUNIT_ASSERT(Path::rmdir(p));
 
+}
+
+void PathTestSuite::renameFile()
+{
+    // delete rename target if it already exists:
+    CPPUNIT_ASSERT(Path("testfile2").rm());
+
+    FILE *testfile = fopen("testfile", "w");
+    CPPUNIT_ASSERT(testfile != nullptr);
+    fclose(testfile);
+
+    Path pt = "testfile";
+    CPPUNIT_ASSERT(pt.exists());
+    CPPUNIT_ASSERT(pt.type() == Path::File);
+
+    CPPUNIT_ASSERT(pt.rename("testfile2"));
+
+    CPPUNIT_ASSERT(pt == "testfile2");
+    CPPUNIT_ASSERT(pt.exists());
+    CPPUNIT_ASSERT(pt.type() == Path::File);
+
+    // old file should not exist anymore.
+    testfile = fopen("testfile", "r");
+    CPPUNIT_ASSERT(testfile == nullptr);
+    fclose(testfile);
+
+    testfile = fopen("testfile2", "r");
+    CPPUNIT_ASSERT(testfile != nullptr);
+    fclose(testfile);
+}
+
+void PathTestSuite::renameFileToExisting()
+{
+    FILE *testfile1 = fopen("testfile1", "w");
+    FILE *testfile2 = fopen("testfile2", "w");
+
+    CPPUNIT_ASSERT(testfile1 != nullptr);
+    CPPUNIT_ASSERT(testfile2 != nullptr);
+
+    fclose(testfile1);
+    fclose(testfile2);
+
+    Path p1("testfile1");
+    CPPUNIT_ASSERT(p1.rename("testfile2"));
+    CPPUNIT_ASSERT(p1.type() == Path::File);
+    CPPUNIT_ASSERT(p1 == "testfile2");
+}
+
+void PathTestSuite::renameDir()
+{
+    // delete rename target if it already exists:
+    Path::rmdir("testdir2");
+
+    Path p("testdir");
+
+    CPPUNIT_ASSERT(p.mkdir());
+    CPPUNIT_ASSERT(p.exists());
+    CPPUNIT_ASSERT(p.type() == Path::Directory);
+
+    CPPUNIT_ASSERT(p.rename("testdir2"));
+
+    CPPUNIT_ASSERT(p.exists());
+    CPPUNIT_ASSERT(p.type() == Path::Directory);
+    CPPUNIT_ASSERT(p == "testdir2");
+
+    // old one should no longer exist.
+    CPPUNIT_ASSERT(!Path("testdir").exists());
+}
+
+void PathTestSuite::renameDir_unicode()
+{
+    // delete rename target if it already exists:
+    Path::rmdir(u8"Öüéמש最終");
+
+    Path p(u8"Äßéמש最終");
+
+    CPPUNIT_ASSERT(p.mkdir());
+    CPPUNIT_ASSERT(p.exists());
+    CPPUNIT_ASSERT(p.type() == Path::Directory);
+
+    CPPUNIT_ASSERT(p.rename(u8"Öüéמש最終"));
+
+    CPPUNIT_ASSERT(p.exists());
+    CPPUNIT_ASSERT(p.type() == Path::Directory);
+    CPPUNIT_ASSERT(p == u8"Öüéמש最終");
+
+    // old one should no longer exist.
+    CPPUNIT_ASSERT(!Path(u8"Äßéמש最終").exists());
 }
