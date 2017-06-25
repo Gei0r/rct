@@ -61,6 +61,14 @@ void PathTestSuite::testPathConstructionWindows()
         CPPUNIT_ASSERT(p == "\\\\127.0.0.1/share");
         CPPUNIT_ASSERT(p.isAbsolute());
     }
+
+    {
+        Path p("/C/windows");
+        std::cout << p.c_str() << std::endl;
+        CPPUNIT_ASSERT(p == "C:/windows");
+        CPPUNIT_ASSERT(p.isAbsolute());
+        CPPUNIT_ASSERT(p.isDir());
+    }
 }
 
 void PathTestSuite::testPathStatusWindows()

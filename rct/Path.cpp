@@ -3,6 +3,7 @@
 
 #include <dirent.h>
 #ifdef _WIN32
+#  include "Process.h"  // to get environment
 #  include <direct.h>
 #  include <Windows.h>
 #  include <Shellapi.h>
@@ -16,6 +17,7 @@
 #include <sys/types.h>
 #include <utime.h>
 #include <algorithm>
+#include <regex>
 
 #include "Log.h"
 #include "Rct.h"
@@ -28,6 +30,8 @@ const char Path::ENV_PATH_SEPARATOR = ';';
 #else
 const char Path::ENV_PATH_SEPARATOR = ':';
 #endif
+
+/* static */ Path Path::mTempDir;
 
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const
@@ -829,6 +833,10 @@ void Path::replaceBackslashes()
 {
     std::size_t start = 0;
 
+    // don't use my own operator=, because it will call replaceBackslashes
+    // again, resulting in endless recursion.
+    String::operator=(std::regex_replace(c_str(), std::regex("^/([a-zA-Z])/"), "$1:/"));
+
     // don't replace \\ at the beginning (network path)
     if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')
     {
@@ -839,4 +847,32 @@ void Path::replaceBackslashes()
     {
         if((*this)[i] == '\\') (*this)[i] = '/';
     }
+}
+
+/*static*/ Path Path::tempDir()
+{
+    if(mTempDir.isEmpty())
+    {
+#ifdef _WIN32
+        List<String> env = Process::environment();
+
+        auto it = std::find_if(env.begin(), env.end(),
+                               [](const String &entry) {return entry.startsWith("TEMP=");});
+
+        if(it == env.end())
+        {
+            error() << "Can't find environment variable TEMP, using C:/temp...";
+            mTempDir = "C:/temp/";
+            return mTempDir;
+        }
+
+        mTempDir = Path(it->mid(5)).ensureTrailingSlash();
+#else
+        mTempDir = "/tmp/";
+#endif
+
+        debug() << "Using temp dir " << mTempDir;
+    }
+
+    return mTempDir;
 }

@@ -218,8 +218,21 @@ public:
 
     /**
      * For windows. Replace backslashes (\) in the path by forward slashes (/).
+     *
+     * Also change paths like /C/something to C:/something.
      */
     void replaceBackslashes();
+
+    /**
+     * Path to the temp directory. Will always end with '/'.
+     *
+     * On *nix, this is "/tmp/". On Windows, the value is taken from the TEMP
+     * environment variable (e.g. C:/Users/<username>/AppData/Local/Temp)
+     */
+    static Path tempDir();
+
+private:
+    static Path mTempDir;
 };
 
 namespace std
