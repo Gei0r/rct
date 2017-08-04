@@ -87,7 +87,7 @@ set(RCT_DEFINITIONS "")
 set(RCT_INCLUDE_DIRS "")
 find_package(ZLIB)
 if (NOT ZLIB_FOUND AND PKGCONFIG_FOUND)
-    pkg_search_module(ZLIB)
+    pkg_search_module(ZLIB zlib)
 endif()
 
 if (ZLIB_FOUND)
@@ -287,6 +287,16 @@ check_cxx_source_runs("
       a.emplace(1, 1);
       return 0;
   }" HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR)
+
+check_cxx_source_runs("
+  #include <string>
+
+  int main(int, char **)
+  {
+      std::string str = \"foobar testing\";
+      std::string::iterator it = str.erase(str.begin(), str.end());
+      return 0;
+  }" HAVE_STRING_ITERATOR_ERASE)
 
 unset(CMAKE_REQUIRED_FLAGS)
 unset(CMAKE_REQUIRED_LIBRARIES)
