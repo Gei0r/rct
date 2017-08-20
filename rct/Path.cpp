@@ -835,7 +835,7 @@ void Path::replaceBackslashes()
 
     // don't use my own operator=, because it will call replaceBackslashes
     // again, resulting in endless recursion.
-    String::operator=(std::regex_replace(c_str(), std::regex("^/([a-zA-Z])/"), std::string("$1:/")));
+    String::operator=(std::regex_replace(ref(), std::regex("^/([a-zA-Z])/"), std::string("$1:/")));
 
     // don't replace \\ at the beginning (network path)
     if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')

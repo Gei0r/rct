@@ -802,7 +802,9 @@ unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
 unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 {
     unsigned int all = 0;
+#ifndef _WIN32
     int e;
+#endif
 
 #if defined(HAVE_SELECT)
     std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > local;
