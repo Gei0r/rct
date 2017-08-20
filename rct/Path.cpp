@@ -424,7 +424,7 @@ bool Path::rename(const Path &f_newName)
     int result = _wrename(Utf8To16(c_str()).asWchar_t(),
                           Utf8To16(f_newName.c_str()).asWchar_t());
 #else
-    int result = rename(c_str(), f_newName.c_str());
+    int result = ::rename(c_str(), f_newName.c_str());
 #endif
 
     if(result != 0)
@@ -835,7 +835,7 @@ void Path::replaceBackslashes()
 
     // don't use my own operator=, because it will call replaceBackslashes
     // again, resulting in endless recursion.
-    String::operator=(std::regex_replace(c_str(), std::regex("^/([a-zA-Z])/"), "$1:/"));
+    String::operator=(std::regex_replace(c_str(), std::regex("^/([a-zA-Z])/"), std::string("$1:/")));
 
     // don't replace \\ at the beginning (network path)
     if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')
