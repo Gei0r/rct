@@ -833,9 +833,31 @@ void Path::replaceBackslashes()
 {
     std::size_t start = 0;
 
+    // Replace paths like /c/something with c:/something
     // don't use my own operator=, because it will call replaceBackslashes
     // again, resulting in endless recursion.
     String::operator=(std::regex_replace(ref(), std::regex("^/([a-zA-Z])/"), std::string("$1:/")));
+
+    // replace colons (:) after a possible C:\-like start with _colon_:
+    {
+        // rest of the path (after C: may not contain colons)
+        std::string colonPart, colonFreePart;
+
+        if(ref().size() > 2 && std::regex_search(ref(), std::regex("^[a-zA-Z]:(/|\\\\)")))
+        {
+            colonPart = ref().substr(0,2);
+            colonFreePart = ref().substr(2);
+        }
+        else
+        {
+            colonFreePart = ref();
+        }
+
+        colonFreePart = std::regex_replace(colonFreePart, std::regex(":"),
+                                           std::string("_colon_"));
+        String::operator=(colonPart + colonFreePart);
+    }
+
 
     // don't replace \\ at the beginning (network path)
     if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')

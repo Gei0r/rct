@@ -64,10 +64,21 @@ void PathTestSuite::testPathConstructionWindows()
 
     {
         Path p("/C/windows");
-        std::cout << p.c_str() << std::endl;
         CPPUNIT_ASSERT(p == "C:/windows");
         CPPUNIT_ASSERT(p.isAbsolute());
         CPPUNIT_ASSERT(p.isDir());
+    }
+
+    {
+        // path with colon in it
+        Path p("C:\\ab:cd");
+        CPPUNIT_ASSERT(p == "C:/ab_colon_cd");
+    }
+
+    {
+        // relative path with colon in it
+        Path p("a:colon_in_the_filename");
+        CPPUNIT_ASSERT(p == "a_colon_colon_in_the_filename");
     }
 }
 
