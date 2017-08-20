@@ -151,8 +151,8 @@ bool EventLoop::init(unsigned int flags)
 
     if(mEventPipe[EVENT_PIPE_READ_END]  == (signed)INVALID_SOCKET ||
        mEventPipe[EVENT_PIPE_WRITE_END] == (signed)INVALID_SOCKET) {
-        debug() << "Error creating event pipe socket: "
-                << WSAGetLastError();
+        ::error() << "Error creating event pipe socket: "
+                  << WSAGetLastError();
         locker.unlock();
         cleanup();
         return false;
@@ -168,8 +168,8 @@ bool EventLoop::init(unsigned int flags)
     if(bind(mEventPipe[EVENT_PIPE_READ_END],
             reinterpret_cast<sockaddr*>(&listenAddr),
             sizeof(listenAddr)) < 0) {
-        debug() << "Error listening on event pipe: "
-                << WSAGetLastError();
+        ::error() << "Error listening on event pipe: "
+                  << WSAGetLastError();
         cleanup();
         return false;
     }
@@ -179,8 +179,8 @@ bool EventLoop::init(unsigned int flags)
     if(getsockname(mEventPipe[EVENT_PIPE_READ_END],
                    reinterpret_cast<sockaddr*>(&listenAddr),
                    &len) != 0) {
-        debug() << "Could not read back event pipe listening port: "
-                << WSAGetLastError();
+        ::error() << "Could not read back event pipe listening port: "
+                  << WSAGetLastError();
         cleanup();
         return false;
     }
