@@ -211,7 +211,7 @@ void PathTestSuite::unicode()
 void PathTestSuite::renameFile()
 {
     // delete rename target if it already exists:
-    CPPUNIT_ASSERT(Path("testfile2").rm());
+    Path("testfile2").rm();
 
     FILE *testfile = fopen("testfile", "w");
     CPPUNIT_ASSERT(testfile != nullptr);
@@ -230,7 +230,6 @@ void PathTestSuite::renameFile()
     // old file should not exist anymore.
     testfile = fopen("testfile", "r");
     CPPUNIT_ASSERT(testfile == nullptr);
-    fclose(testfile);
 
     testfile = fopen("testfile2", "r");
     CPPUNIT_ASSERT(testfile != nullptr);
