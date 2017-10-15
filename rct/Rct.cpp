@@ -219,14 +219,13 @@ void findExecutablePath(const char *argv0)
         {
             //we found the command in PATH
             sExecutablePath = p;
-            debug() << "exec path: " << p;
             return;
         }
 
         p = Process::findCommand(argv0, ".");
         if(!p.isEmpty())
         {
-            //we found the command in PATH
+            //we found the command in .
             sExecutablePath = p;
             return;
         }

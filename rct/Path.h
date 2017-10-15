@@ -201,6 +201,7 @@ public:
     bool write(const String& data, WriteMode mode = Overwrite) const;
     static bool write(const Path& path, const String& data, WriteMode mode = Overwrite);
 
+    /// on windows, this method does nothing.
     Path toTilde() const;
 
     enum VisitResult {

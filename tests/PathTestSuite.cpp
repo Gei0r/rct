@@ -80,6 +80,14 @@ void PathTestSuite::testPathConstructionWindows()
         Path p("a:colon_in_the_filename");
         CPPUNIT_ASSERT(p == "a_colon_colon_in_the_filename");
     }
+
+    {
+        // drive letter should always be upper case.
+        Path p1("c:\\Windows");
+        CPPUNIT_ASSERT(p1 == "C:/Windows");
+        Path p2("C:\\Windows");
+        CPPUNIT_ASSERT(p2 == "C:/Windows");
+    }
 }
 
 void PathTestSuite::testPathStatusWindows()

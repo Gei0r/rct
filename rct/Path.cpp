@@ -18,6 +18,9 @@
 #include <utime.h>
 #include <algorithm>
 #include <regex>
+#ifdef _WIN32
+#  include <locale>
+#endif
 
 #include "Log.h"
 #include "Rct.h"
@@ -725,7 +728,29 @@ bool Path::write(const String &data, WriteMode mode) const
 
 Path Path::home()
 {
+#ifdef _WIN32
+    Path ret;
+
+    // on windows, there is no definite "home" directory. If the HOME
+    // environment variable is set, we use it. Otherwise, we use %USERPROFILE%,
+    // which defaults to C:\User\<username>.
+    // If %USERPROFILE% is not set, we use c:\.
+    char *env;
+    if((env = getenv("HOME")))
+    {
+        ret = env;
+    }
+    else if((env = getenv("USERPROFILE")))
+    {
+        ret = env;
+    }
+    else
+    {
+        ret = "c:/";
+    }
+#else
     Path ret = Path::resolved(getenv("HOME"));
+#endif
     if (!ret.endsWith('/'))
         ret.append('/');
     return ret;
@@ -733,9 +758,11 @@ Path Path::home()
 
 Path Path::toTilde() const
 {
+#ifndef _WIN32
     const Path home = Path::home();
     if (startsWith(home))
         return String::format<64>("~/%s", constData() + home.size());
+#endif
     return *this;
 }
 
@@ -833,7 +860,7 @@ void Path::replaceBackslashes()
 {
     std::size_t start = 0;
 
-    // Replace paths like /c/something with c:/something
+    // Replace paths like /c/something with C:/something
     // don't use my own operator=, because it will call replaceBackslashes
     // again, resulting in endless recursion.
     String::operator=(std::regex_replace(ref(), std::regex("^/([a-zA-Z])/"), std::string("$1:/")));
@@ -845,11 +872,22 @@ void Path::replaceBackslashes()
 
         if(ref().size() > 2 && std::regex_search(ref(), std::regex("^[a-zA-Z]:(/|\\\\)")))
         {
+            // path starts with <driver_letter>:\ or <drive_letter>:/
+            // We separate the two and make sure the part *after* the drive
+            // letter does not contain colons.
             colonPart = ref().substr(0,2);
             colonFreePart = ref().substr(2);
+
+            // make sure the driver letter is upper case.
+            char driveLetter = colonPart[0];
+
+            std::locale loc("C");  // don't use some crazy locale for lowercase conversion.
+            driveLetter = std::use_facet< std::ctype<char> >(loc).toupper(driveLetter);
+            colonPart[0] = driveLetter;
         }
         else
         {
+            // path does not start with <driver_letter>:/
             colonFreePart = ref();
         }
 
