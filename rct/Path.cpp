@@ -907,6 +907,9 @@ void Path::replaceBackslashes()
     {
         if((*this)[i] == '\\') (*this)[i] = '/';
     }
+
+    // replace multiple slashes with a single slash
+    String::operator=(std::regex_replace(ref(), std::regex("/+"), std::string("/")));
 }
 
 /*static*/ Path Path::tempDir()

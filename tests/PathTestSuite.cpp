@@ -88,6 +88,24 @@ void PathTestSuite::testPathConstructionWindows()
         Path p2("C:\\Windows");
         CPPUNIT_ASSERT(p2 == "C:/Windows");
     }
+
+    {
+        // there should not be more than one slash in a row
+        // (except for network paths)
+        Path p("C:/Windows//");
+        CPPUNIT_ASSERT(p == "C:/Windows/");
+        p = "C:/Windows//";
+        CPPUNIT_ASSERT(p == "C:/Windows/");
+        p = "C://Windows//";
+        CPPUNIT_ASSERT(p == "C:/Windows/");
+        p = "C:/Windows////system32";
+        CPPUNIT_ASSERT(p == "C:/Windows/system32");
+
+        p = "a/relative/path";
+        CPPUNIT_ASSERT(p == "a/relative/path");
+        p = "a//long///relative//path///";
+        CPPUNIT_ASSERT(p == "a/long/relative/path/");
+    }
 }
 
 void PathTestSuite::testPathStatusWindows()
