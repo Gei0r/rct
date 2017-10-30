@@ -157,7 +157,8 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
     {
         // TODO build a real error message like in
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms680582(v=vs.85).aspx
-        error() << "Error in CreateProcess(): " << GetLastError();
+        error() << "Error in CreateProcess(): " << GetLastError()
+                << " (command line:" << Utf16To8(cmd.c_str()).asCString() << ")";
         mProcess.hProcess = mProcess.hThread = INVALID_HANDLE_VALUE;
         return Error;
     }
