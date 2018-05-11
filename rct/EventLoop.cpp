@@ -816,6 +816,10 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
         local = mSockets;
     }
     auto socket = local.begin();
+    if (socket == local.end()) {
+        fprintf(stderr, "wanted to processSocketEvents but no sockets present\n");
+        return 0;
+    }
 #endif
 
     for (int i = 0; i < eventCount; ++i) {

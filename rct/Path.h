@@ -29,6 +29,10 @@ public:
     Path(const Path &other)
         : String(other)
     {}
+    Path(Path &&other)
+        : String(std::move(other))
+    {}
+
     Path(const String &other)
         : String(other)
     {
@@ -36,6 +40,14 @@ public:
         replaceBackslashes();
 #endif
     }
+    Path(String &&other)
+        : String(std::move(other))
+    {
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+    }
+
     Path(const char *path)
         : String(path)
     {
@@ -56,6 +68,12 @@ public:
         String::operator=(other);
         return *this;
     }
+    Path &operator=(Path &&other)
+    {
+        String::operator=(std::move(other));
+        return *this;
+    }
+
     Path &operator=(const String &other)
     {
         String::operator=(other);
@@ -64,6 +82,16 @@ public:
 #endif
         return *this;
     }
+
+    Path &operator=(String &&other)
+    {
+        String::operator=(std::move(other));
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+        return *this;
+    }
+
 
     Path &operator=(const char *path)
     {
@@ -213,7 +241,7 @@ public:
     List<Path> files(unsigned int filter = All, size_t max = String::npos, bool recurse = false) const;
 
     static bool sRealPathEnabled;
-    
+
     /// ';' on windows, ':' on unix
     static const char ENV_PATH_SEPARATOR;
 

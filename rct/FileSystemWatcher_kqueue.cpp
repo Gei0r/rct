@@ -12,11 +12,17 @@
 #include "Log.h"
 #include "rct/rct-config.h"
 #include "Rct.h"
+#include "SocketClient.h"
 
 void FileSystemWatcher::init()
 {
     mFd = kqueue();
     assert(mFd != -1);
+
+#ifdef HAVE_CLOEXEC
+    SocketClient::setFlags(mFd, FD_CLOEXEC, F_GETFD, F_SETFD);
+#endif
+
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
@@ -229,6 +235,8 @@ void FileSystemWatcher::notifyReadyRead()
 {
     FSUserData data;
     {
+        std::unique_lock<std::mutex> lock(mMutex);
+
         enum { MaxEvents = 5 };
         struct kevent events[MaxEvents];
         struct timespec nullts = { 0, 0 };
@@ -244,7 +252,6 @@ void FileSystemWatcher::notifyReadyRead()
             }
             assert(ret > 0 && ret <= MaxEvents);
             for (int i = 0; i < ret; ++i) {
-                std::unique_lock<std::mutex> lock(mMutex);
                 const struct kevent& event = events[i];
                 const Path p = mWatchedById.value(event.ident);
                 if (event.flags & EV_ERROR) {
@@ -306,13 +313,14 @@ void FileSystemWatcher::notifyReadyRead()
                             signals[i].signal(*it);
                         }
                     }
+                    lock.lock();
                 }
 
-                if (lock.owns_lock())
-                    lock.unlock();
+                lock.unlock();
                 for (Set<Path>::const_iterator it = data.all.begin(); it != data.all.end(); ++it) {
                     mRemoved(*it);
                 }
+                lock.lock();
             }
         }
     }
